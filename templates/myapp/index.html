@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bootstrap 101 Template</title>
+    <!-- Bootstrap -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="http://twitter.github.com/bootstrap/assets/css/bootstrap.css" rel="stylesheet" media="screen" />
+    <link href="http://twitter.github.com/bootstrap/assets/css/bootstrap-responsive.css" rel="stylesheet" media="screen" />
+    <script src="http://code.jquery.com/jquery-latest.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-transition.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-alert.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-modal.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-dropdown.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-scrollspy.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-tab.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-tooltip.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-popover.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-button.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-collapse.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-carousel.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-typeahead.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-affix.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/application.js"></script>
+    <script type="text/javascript">
+		
+        $(document).ready(function(){
+			$("a.delete_post i").on(
+			
+				"click", function(){
+					
+					alert("Boum");
+					console.log($(this).parent().data("post_id"));
+					
+					var data = JSON.stringify({
+						"id": $(this).parent().data("post_id"),
+					});
+					
+					$.ajax({
+                        type: 'GET',
+                        url: '/api/v1/entry/',
+                        data: data,
+                        success: function(data){
+							$(".console pre").append("DELETE COMPLETE\n");
+                        },
+                        error: function(data){
+							$(".console pre").append("ERROR: ");
+							$(".console pre").append(data.statusText+" ("+data.responseText+")");
+							$(".console pre").append("\n");
+                        },
+                        contentType:'application/json'
+                    });
+                    return false;
+				}
+				
+			);
+			
+            $("#btnSend").on(
+                "click", function(){
+                    var user = $("#inputUser").val();
+                    var pubdate = $("#inputPubdate").val();
+                    var title = $("#inputTitle").val();
+                    var slug = $("#inputSlug").val();
+                    var body = $("#inputBody").val();
+
+                    var data = JSON.stringify({
+                        "user": user,
+                        "body": body,
+                        "pub_date": pubdate,
+                        "slug": slug,
+                        "title": title
+                    });
+                    $.ajax({
+                        type: 'POST',
+                        url: '/api/v1/entry/',
+                        data: data,
+                        beforeSend: function(){
+							$("img.sablier_create").css("display","inline-block");
+						},
+						complete: function(){
+							$("img.sablier_create").css("display","none");
+						},
+                        success: function(data){
+							$('.create-success').fadeIn();
+							$(".console pre").append("CREATE OK\n");
+                        },
+                        error: function(data){
+							console.log(data);
+							$('.create-error').fadeIn();
+							$(".console pre").append("ERROR: ");
+							$(".console pre").append(data.statusText+" ("+data.responseText+")");
+							$(".console pre").append("\n");
+                        },
+                        contentType:'application/json'
+                    });
+                    return false;
+                }
+            );
+            
+            $(".actualizeContent").on(
+				"click", function(){
+					$.ajax({
+                        type: 'GET',
+                        url: '/api/v1/entry/',
+                        beforeSend: function(){
+							$("img.sablier_refresh").css("display","inline-block");
+						},
+						complete: function(){
+							$("img.sablier_refresh").css("display","none");
+						},
+                        success: function(data){
+							
+							$("table.contentList tbody tr").remove();
+							for (var object in data.objects){
+								$("table.contentList tbody").append("<tr><td>"+data.objects[object].title+"</td><td>"+data.objects[object].slug+"</td><td>"+data.objects[object].pub_date+"</td><td>"+data.objects[object].user+"</td><td><a href=\"#\" data-post_id=\""+data.objects[object].id+"\" class=\"delete_post\" ><i class=\"icon-trash\"></i></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"#\" data-post_id=\""+data.objects[object].id+"\" class=\"edit_post\" ><i class=\"icon-edit\"></i></a></td></tr>");
+							}
+							$(".console pre").append("REFRESH COMPLETE\n");
+                        },
+                        error: function(data){
+							$(".console pre").append("ERROR: ");
+							$(".console pre").append(data.statusText);
+							$(".console pre").append("\n");
+                        },
+                        contentType:'application/json'
+                    });
+				}
+            );
+			
+        });
+    </script>
+  </head>
+  <body>
+
+    <div class="navbar">
+        <div class="navbar-inner">
+            <a class="brand" href="#">Testypie</a>
+            <ul class="nav">
+                <li class="active"><a href="#">Home</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="container">
+        <div class="row">
+            <div class="span4">
+                <h1>Testypie</h1>
+                <p>This tools a made for testing the Tastypie module for the Django framework.</p>
+            </div>
+            <div class="span8">
+				<div class="tabbable">
+					<ul class="nav nav-tabs">
+						<li class="active"><a href="#tab1" class="actualizeContent" data-toggle="tab">View all</a></li>
+						<li><a href="#tab2" data-toggle="tab">Add</a></li>
+					</ul>
+					<div class="tab-content">
+						<div class="tab-pane active" id="tab1">
+							<h2>List off blog post's&nbsp;<img src="/static/img/loader.gif" class="sablier_refresh" alt="Loading..."  style="display: none;" /></h2>
+							<table class="table table-striped contentList">
+								<thead>
+									<tr>
+										<th>Title</th><th>slug</th><th>Pub_date</th><th>user</th><th>admin</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td></td><td></td><td></td><td><a href="#" class="delete_post" ><i class="icon-trash"></i></a></td>
+									</tr>
+								</tbody>
+							</table>
+							<p>
+								<button class="btn btn-success actualizeContent" type="button">Refresh</button>
+							</p>
+						</div>
+						<div class="tab-pane" id="tab2">
+							<h2>Add a blog post<img src="/static/img/loader.gif" class="sablier_create" alt="Loading..." style="display: none;" /></h2>
+							<div class="alert create-success alert-success fade in" style="display:none;">
+								<button type="button" class="close" data-dismiss="alert">&times;</button>
+								<strong>Blog post created successfully</strong> Go to the list to see him
+							</div>
+							<div class="alert create-error alert-block alert-error fade in" style="display:none;">
+								<button type="button" class="close" data-dismiss="alert">&times;</button>
+								<strong>An error as occured</strong> Contact the administrator.
+							</div>
+							<form class="form-horizontal">
+								<div class="control-group">
+									<label class="control-label" for="inputUser">User</label>
+									<div class="controls">
+										<input type="text" id="inputUser" placeholder="User" value="/api/v1/user/1/">
+									</div>
+								</div>
+								<div class="control-group">
+									<label class="control-label" for="inputPubdate">Pubdate</label>
+									<div class="controls">
+										<input type="text" id="inputPubdate" placeholder="Pubdate" value="2012-11-02T11:00:00+00:00">
+									</div>
+								</div>
+								<div class="control-group">
+									<label class="control-label" for="inputTitle">Title</label>
+									<div class="controls">
+										<input type="text" id="inputTitle" placeholder="Title">
+									</div>
+								</div>
+								<div class="control-group">
+									<label class="control-label" for="inputSlug">Slug</label>
+									<div class="controls">
+										<input type="text" id="inputSlug" placeholder="Slug">
+									</div>
+								</div>
+								<div class="control-group">
+									<label class="control-label" for="inputBody">Body</label>
+									<div class="controls">
+										<textarea rows="3" id="inputBody" placeholder="Body"></textarea>
+									</div>
+								</div>
+								<div class="control-group">
+									<div class="controls">
+										<button type="submit" class="btn" id="btnSend">Send</button>
+									</div>
+								</div>
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+        </div>
+        <div class="row">
+            <div class="span12 console">
+                <pre>Testypie
+--------
+</pre>
+            </div>
+    </div>
+  </body>
+</html>
