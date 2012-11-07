@@ -24,21 +24,12 @@
     <script type="text/javascript">
 		
         $(document).ready(function(){
-			$("a.delete_post i").on(
-			
+			$("a.delete_post").live(
 				"click", function(){
 					
-					alert("Boum");
-					console.log($(this).parent().data("post_id"));
-					
-					var data = JSON.stringify({
-						"id": $(this).parent().data("post_id"),
-					});
-					
 					$.ajax({
-                        type: 'GET',
-                        url: '/api/v1/entry/',
-                        data: data,
+                        type: 'DELETE',
+                        url: '/api/v1/entry/'+$(this).data("post_id")+'/',
                         success: function(data){
 							$(".console pre").append("DELETE COMPLETE\n");
                         },
@@ -49,6 +40,9 @@
                         },
                         contentType:'application/json'
                     });
+                    
+                    $(".actualizeContent").click();
+                    
                     return false;
 				}
 				
@@ -80,7 +74,7 @@
 							$("img.sablier_create").css("display","none");
 						},
                         success: function(data){
-							$('.create-success').fadeIn();
+							$('.create-success').css("display","block").fadeIn();
 							$(".console pre").append("CREATE OK\n");
                         },
                         error: function(data){
@@ -160,9 +154,6 @@
 									</tr>
 								</thead>
 								<tbody>
-									<tr>
-										<td></td><td></td><td></td><td><a href="#" class="delete_post" ><i class="icon-trash"></i></a></td>
-									</tr>
 								</tbody>
 							</table>
 							<p>
