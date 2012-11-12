@@ -7,6 +7,8 @@
     <link href="http://twitter.github.com/bootstrap/assets/css/bootstrap.css" rel="stylesheet" media="screen" />
     <link href="http://twitter.github.com/bootstrap/assets/css/bootstrap-responsive.css" rel="stylesheet" media="screen" />
     <script src="http://code.jquery.com/jquery-latest.js"></script>
+    <script src="http://underscorejs.org/underscore-min.js"></script>
+    <script src="http://backbonejs.org/backbone-min.js"></script>
     <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-transition.js"></script>
     <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-alert.js"></script>
     <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-modal.js"></script>
@@ -21,17 +23,70 @@
     <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-typeahead.js"></script>
     <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-affix.js"></script>
     <script src="http://twitter.github.com/bootstrap/assets/js/application.js"></script>
+    <script type="text/template" id="alert-success-template">
+		<div class="alert create-success alert-success fade in">
+			<button type="button" class="close" data-dismiss="alert">&times;</button>
+			<%= text_alert %>
+		</div>
+    </script>
+    <script type="text/template" id="alert-error-template">
+		<div class="alert create-error alert-block alert-error fade in">
+			<button type="button" class="close" data-dismiss="alert">&times;</button>
+			<%= text_alert %>
+		</div>
+    </script>
     <script type="text/javascript">
 		
         $(document).ready(function(){
+			
+			function get_all_users(target,value){
+				
+				$.ajax({
+					type: 'GET',
+					url: '/api/v1/user/',
+					success: function(data){
+						$(".console pre").append("GET USERS COMPLETE\n");
+						$(target).remove("option");
+						for (user in data.objects){
+							var option = "<option value=\""+data.objects[user].resource_uri+"\""
+							
+							
+							if (value == data.objects[user].resource_uri){
+								option = option + " SELECTED=\"SELECTED\"";
+							}
+							
+							$(target).append(option + " >"+data.objects[user].username+"</option>");
+						}
+					},
+					error: function(data){
+						$(".console pre").append("GET USERS ERROR: ");
+						$(".console pre").append(data.statusText+" ("+data.responseText+")");
+						$(".console pre").append("\n");
+						return false;
+					},
+					contentType:'application/json'
+				});
+			}
+			
+			$('#editModal').on('hidden', function () {
+				console.log("prout!");
+				$(".editpost #editTitle").val("");
+				$(".editpost #editBody").val("");
+				$(".editpost #editSlug").val("");
+				$(".editpost #editresource_uri").val("");
+				$(".editpost #editUser option").remove();
+			})
+
+			
 			$("a.delete_post").live(
 				"click", function(){
 					
 					$.ajax({
                         type: 'DELETE',
-                        url: '/api/v1/entry/'+$(this).data("post_id")+'/',
+                        url: $(this).data("resource_uri"),
                         success: function(data){
 							$(".console pre").append("DELETE COMPLETE\n");
+							$(".actualizeContent").click();
                         },
                         error: function(data){
 							$(".console pre").append("ERROR: ");
@@ -41,7 +96,6 @@
                         contentType:'application/json'
                     });
                     
-                    $(".actualizeContent").click();
                     
                     return false;
 				}
@@ -50,16 +104,17 @@
 			
 			$("a.edit_post").live(
 				"click", function(){
-					
 					$.ajax({
                         type: 'GET',
-                        url: '/api/v1/entry/'+$(this).data("post_id")+'/',
+                        url: $(this).data("resource_uri"),
                         success: function(data){
+							get_all_users("#editUser",data.user);
 							$(".console pre").append("GET SUCCESS\n");
 							$(".editpost #editBody").val(data.body);
 							$(".editpost #editPubdate").val(data.pub_date);
 							$(".editpost #editTitle").val(data.title);
 							$(".editpost #editSlug").val(data.slug);
+							$(".editpost #editresource_uri").val(data.resource_uri);
 							$("#btneditSend").attr("data-post_id",data.id)
 							$('#editModal').modal();
                         },
@@ -72,6 +127,45 @@
                     });
                     
                     return false;
+				}
+			);
+			
+			$("#btneditSend").on(
+				"click", function(){
+					
+                    var data = JSON.stringify({
+                        "user": $(".editpost #editUser option:selected").val(),
+                        "body": $(".editpost #editBody").val(),
+                        "pub_date": $(".editpost #editPubdate").val(),
+                        "slug": $(".editpost #editSlug").val(),
+                        "title": $(".editpost #editTitle").val()
+                    });
+					$.ajax({
+						type: 'PUT',
+						url: $(".editpost #editresource_uri").val(),
+						data: data,
+						beforeSend: function(){
+							$("h3.edit-post img.sablier_refresh").css("display","inline-block");
+						},
+						complete: function(){
+							$("h3.edit-post img.sablier_refresh").css("display","none");
+						},
+						success: function(data){
+							$(".console pre").append("PATCH OK\n");
+							$(".actualizeContent").click();
+							$("#editModal").modal('hide');
+						},
+						error: function(data){
+							var template = _.template( $("#alert-error-template").html(), {text_alert: "<strong>ERROR !</strong> Your post are not been saved!!"} );
+							$("h3.edit-post").after(template);
+							$(".console pre").append("ERROR: ");
+							$(".console pre").append(data.statusText+" ("+data.responseText+")");
+							$(".console pre").append("\n");
+						},
+						contentType:'application/json'
+					}); 
+					
+					
 				}
 			);
 			
@@ -101,8 +195,11 @@
 							$("img.sablier_create").css("display","none");
 						},
                         success: function(data){
-							$('.create-success').css("display","block").fadeIn();
+							// $('.create-success').css("display","block").fadeIn();
+							var template = _.template( $("#alert-success-template").html(), {text_alert: "Your post as been saved !"} );
+							$("h2.add_blog").after(template);
 							$(".console pre").append("CREATE OK\n");
+							$(".actualizeContent").click();
                         },
                         error: function(data){
 							console.log(data);
@@ -132,7 +229,7 @@
 							
 							$("table.contentList tbody tr").remove();
 							for (var object in data.objects){
-								$("table.contentList tbody").append("<tr><td>"+data.objects[object].title+"</td><td>"+data.objects[object].slug+"</td><td>"+data.objects[object].pub_date+"</td><td>"+data.objects[object].user+"</td><td><a href=\"#\" data-post_id=\""+data.objects[object].id+"\" class=\"delete_post\" ><i class=\"icon-trash\"></i></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"#\" data-post_id=\""+data.objects[object].id+"\" class=\"edit_post\" ><i class=\"icon-edit\"></i></a></td></tr>");
+								$("table.contentList tbody").append("<tr><td>"+data.objects[object].title+"</td><td>"+data.objects[object].slug+"</td><td>"+data.objects[object].pub_date+"</td><td>"+data.objects[object].user+"</td><td><a href=\"#\" data-resource_uri=\""+data.objects[object].resource_uri+"\" class=\"delete_post\" ><i class=\"icon-trash\"></i></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"#\" data-resource_uri=\""+data.objects[object].resource_uri+"\" class=\"edit_post\" ><i class=\"icon-edit\"></i></a></td></tr>");
 							}
 							$(".console pre").append("REFRESH COMPLETE\n");
                         },
@@ -173,7 +270,7 @@
 					</ul>
 					<div class="tab-content">
 						<div class="tab-pane active" id="tab1">
-							<h2>List off blog post's&nbsp;<img src="/static/img/loader.gif" class="sablier_refresh" alt="Loading..."  style="display: none;" /></h2>
+							<h2 class="list_blog" >List off blog post's&nbsp;<img src="/static/img/loader.gif" class="sablier_refresh" alt="Loading..."  style="display: none;" /></h2>
 							<table class="table table-striped contentList">
 								<thead>
 									<tr>
@@ -188,20 +285,15 @@
 							</p>
 						</div>
 						<div class="tab-pane" id="tab2">
-							<h2>Add a blog post<img src="/static/img/loader.gif" class="sablier_create" alt="Loading..." style="display: none;" /></h2>
-							<div class="alert create-success alert-success fade in" style="display:none;">
-								<button type="button" class="close" data-dismiss="alert">&times;</button>
-								<strong>Blog post created successfully</strong> Go to the list to see him
-							</div>
-							<div class="alert create-error alert-block alert-error fade in" style="display:none;">
-								<button type="button" class="close" data-dismiss="alert">&times;</button>
-								<strong>An error as occured</strong> Contact the administrator.
-							</div>
+							<h2 class="add_blog" >Add a blog post<img src="/static/img/loader.gif" class="sablier_create" alt="Loading..." style="display: none;" /></h2>
+							
 							<form class="form-horizontal">
 								<div class="control-group">
 									<label class="control-label" for="inputUser">User</label>
 									<div class="controls">
-										<input type="text" id="inputUser" placeholder="User" value="/api/v1/user/1/">
+										<!-- <input type="text" id="inputUser" placeholder="User" value="/api/v1/user/1/"> -->
+										<select id="inputUser" >
+										</select>
 									</div>
 								</div>
 								<div class="control-group">
@@ -249,10 +341,19 @@
 	<div class="modal hide fade" id="editModal">
 		<div class="modal-header">
 			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-			<h3>Edit post</h3>
+			<h3 class="edit-post" >Edit post&nbsp;<img src="/static/img/loader.gif" class="sablier_refresh" alt="Loading..."  style="display: none;" /></h3>
 		</div>
 		<div class="modal-body">
 			<form class="form-horizontal editpost">
+				<input type="hidden" id="editresource_uri" value="" />
+				<div class="control-group">
+					<label class="control-label" for="inputUser">User</label>
+					<div class="controls">
+						<!-- <input type="text" id="inputUser" placeholder="User" value="/api/v1/user/1/"> -->
+						<select id="editUser" >
+						</select>
+					</div>
+				</div>
 				<div class="control-group">
 					<label class="control-label" for="inputPubdate">Pubdate</label>
 					<div class="controls">
