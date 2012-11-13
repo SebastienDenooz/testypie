@@ -2,7 +2,9 @@
 from django.contrib.auth.models import User
 from tastypie import fields
 from tastypie.resources import ModelResource
-from tastypie.authorization import Authorization
+# from tastypie.authorization import Authorization
+from tastypie.authentication import OAuthAuthentication
+from tastypie.authorization import DjangoAuthorization
 from myapp.models import Entry
 
 
@@ -11,7 +13,8 @@ class UserResource(ModelResource):
         queryset = User.objects.all()
         resource_name = 'user'
         excludes = ['email', 'password', 'is_active', 'is_staff', 'is_superuser']
-        authorization= Authorization()
+        authentication = OAuthAuthentication()
+        authorization= DjangoAuthorization()
 
 
 class EntryResource(ModelResource):
@@ -21,4 +24,5 @@ class EntryResource(ModelResource):
         queryset = Entry.objects.all()
         resource_name = 'entry'
         allowed_methods = ['get','put','post','update','delete']
-        authorization= Authorization()
+        authentication = OAuthAuthentication()
+        authorization= DjangoAuthorization()
